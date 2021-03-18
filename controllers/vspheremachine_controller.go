@@ -81,12 +81,13 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	}
 
 	r := machineReconciler{ControllerContext: controllerContext}
+	filter := predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Filter events by watch filter and paused labels.
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
+		WithEventFilter(filter).
 		// Watch any VSphereVM resources owned by the controlled type.
 		Watches(
 			&source.Kind{Type: &infrav1.VSphereVM{}},
@@ -121,16 +122,14 @@ func AddMachineControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
+				if !filter.Update(e) {
+					return false
+				}
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
-			},
+			CreateFunc: filter.CreateFunc,
 		})
 	if err != nil {
 		return err

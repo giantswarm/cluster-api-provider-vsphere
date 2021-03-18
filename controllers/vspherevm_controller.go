@@ -77,11 +77,13 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := vmReconciler{ControllerContext: controllerContext}
+	filter := predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Filter events by watch filter and paused labels.
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
+		WithEventFilter(filter).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
 		// This is useful when there are events outside of Kubernetes that
@@ -105,16 +107,14 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
+				if !filter.Update(e) {
+					return false
+				}
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				return true
-			},
+			CreateFunc: filter.CreateFunc,
 		})
 	if err != nil {
 		return err

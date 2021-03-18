@@ -91,12 +91,13 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 	}
 
 	reconciler := haproxylbReconciler{ControllerContext: controllerContext}
+	filter := predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(haproxyControlledType).
 		// Filter events by watch filter and paused labels.
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
+		WithEventFilter(filter).
 		// Watch any VSphereVM resources owned by the controlled type.
 		Watches(
 			&source.Kind{Type: &infrav1.VSphereVM{}},
@@ -131,20 +132,14 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 		},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
+				if !filter.Update(e) {
+					return false
+				}
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
-					return false
-				}
-				if ctx.WatchFilter != "" {
-					watchLabel, hasWatchLabel := e.Meta.GetLabels()[clusterv1.WatchLabel]
-					return !hasWatchLabel || watchLabel != ctx.WatchFilter
-				}
-				return true
-			},
+			CreateFunc: filter.CreateFunc,
 		})
 	if err != nil {
 		return err
