@@ -690,6 +690,11 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 		return err
 	}
 
+	configMap := cloudprovider.CSIFeatureStatesConfigMap()
+	if _, err := targetClusterClient.CoreV1().ConfigMaps(configMap.Namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+		return err
+	}
+
 	clusterRole := cloudprovider.CSIControllerClusterRole()
 	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(ctx, clusterRole, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
