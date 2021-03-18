@@ -33,15 +33,12 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -77,13 +74,11 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		Logger:                   ctx.Logger.WithName(controllerNameShort),
 	}
 	r := vmReconciler{ControllerContext: controllerContext}
-	filter := predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)
-
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(controlledType).
 		// Filter events by watch filter and paused labels.
-		WithEventFilter(filter).
+		WithEventFilter(ctx.GetCommonEventFilter()).
 		// Watch a GenericEvent channel for the controlled resource.
 		//
 		// This is useful when there are events outside of Kubernetes that
@@ -105,17 +100,7 @@ func AddVMControllerToManager(ctx *context.ControllerManagerContext, mgr manager
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(r.clusterToVSphereVMs),
 		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				if !filter.Update(e) {
-					return false
-				}
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: filter.CreateFunc,
-		})
+		ctx.GetClusterEventFilter())
 	if err != nil {
 		return err
 	}
