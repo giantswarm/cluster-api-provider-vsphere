@@ -65,7 +65,7 @@ type ControllerManagerContext struct {
 	// Scheme is the controller manager's API scheme.
 	Scheme *runtime.Scheme
 
-	// MaxConcurrentReconciles is the maximum number of recocnile requests this
+	// MaxConcurrentReconciles is the maximum number of reconcile requests this
 	// controller will receive concurrently.
 	MaxConcurrentReconciles int
 
@@ -76,6 +76,10 @@ type ControllerManagerContext struct {
 	// Password is the password for the account used to access remote vSphere
 	// endpoints.
 	Password string
+
+	// WatchFilter is the value of label cluster.x-k8s.io/watch-filter
+	// the controller will use to filter resources.
+	WatchFilter string
 
 	genericEventCache sync.Map
 }

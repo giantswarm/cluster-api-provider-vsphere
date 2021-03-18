@@ -40,6 +40,7 @@ import (
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -85,6 +86,8 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
+		// Filter events by watch filter and paused labels.
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
