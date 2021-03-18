@@ -85,6 +85,7 @@ func New(opts Options) (Manager, error) {
 	controllerManagerContext := &context.ControllerManagerContext{
 		Context:                 goctx.Background(),
 		Namespace:               opts.WatchNamespace,
+		WatchFilter:             opts.WatchFilter,
 		Name:                    opts.PodName,
 		LeaderElectionID:        opts.LeaderElectionID,
 		LeaderElectionNamespace: opts.LeaderElectionNamespace,

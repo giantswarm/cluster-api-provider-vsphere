@@ -38,6 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutilv1 "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -94,6 +95,8 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(haproxyControlledType).
+		// Filter events by watch filter and paused labels.
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
 		// Watch any VSphereVM resources owned by the controlled type.
 		Watches(
 			&source.Kind{Type: &infrav1.VSphereVM{}},
@@ -135,6 +138,10 @@ func AddHAProxyLoadBalancerControllerToManager(ctx *context.ControllerManagerCon
 			CreateFunc: func(e event.CreateEvent) bool {
 				if _, ok := e.Meta.GetAnnotations()[clusterv1.PausedAnnotation]; !ok {
 					return false
+				}
+				if ctx.WatchFilter != "" {
+					watchLabel, hasWatchLabel := e.Meta.GetLabels()[clusterv1.WatchLabel]
+					return !hasWatchLabel || watchLabel != ctx.WatchFilter
 				}
 				return true
 			},
