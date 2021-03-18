@@ -82,12 +82,13 @@ func AddClusterControllerToManager(ctx *context.ControllerManagerContext, mgr ma
 	}
 
 	reconciler := clusterReconciler{ControllerContext: controllerContext}
+	filter := predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		// Watch the controlled, infrastructure resource.
 		For(clusterControlledType).
 		// Filter events by watch filter and paused labels.
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctx.Logger, ctx.WatchFilter)).
+		WithEventFilter(filter).
 		// Watch the CAPI resource that owns this infrastructure resource.
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
