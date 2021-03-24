@@ -13,7 +13,8 @@ linters:
   # Run with --fast=false for more extensive checks
   fast: true
   skip-dirs:
-    - pkg
+    - contrib/
+    - pkg/
 run:
   skip-files:
   - ".*zz_generated.*\\.go"
