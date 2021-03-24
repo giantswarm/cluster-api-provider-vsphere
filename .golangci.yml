@@ -12,6 +12,8 @@ linters:
     - gomnd
   # Run with --fast=false for more extensive checks
   fast: true
+  skip-dirs:
+    - pkg
 run:
   skip-files:
   - ".*zz_generated.*\\.go"
