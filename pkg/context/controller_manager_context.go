@@ -23,8 +23,11 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"sigs.k8s.io/cluster-api-provider-vsphere/pkg/record"
 )
@@ -65,7 +68,7 @@ type ControllerManagerContext struct {
 	// Scheme is the controller manager's API scheme.
 	Scheme *runtime.Scheme
 
-	// MaxConcurrentReconciles is the maximum number of recocnile requests this
+	// MaxConcurrentReconciles is the maximum number of reconcile requests this
 	// controller will receive concurrently.
 	MaxConcurrentReconciles int
 
@@ -76,6 +79,10 @@ type ControllerManagerContext struct {
 	// Password is the password for the account used to access remote vSphere
 	// endpoints.
 	Password string
+
+	// WatchFilter is the value of label cluster.x-k8s.io/watch-filter
+	// the controller will use to filter resources.
+	WatchFilter string
 
 	genericEventCache sync.Map
 }
@@ -93,4 +100,23 @@ func (c *ControllerManagerContext) GetGenericEventChannelFor(gvk schema.GroupVer
 	}
 	val, _ := c.genericEventCache.LoadOrStore(gvk, make(chan event.GenericEvent))
 	return val.(chan event.GenericEvent)
+}
+
+func (c *ControllerManagerContext) GetCommonEventFilter() predicate.Funcs {
+	return predicates.ResourceNotPausedAndHasFilterLabel(c.Logger, c.WatchFilter)
+}
+
+func (c *ControllerManagerContext) GetClusterEventFilter() predicate.Funcs {
+	commonFilter := c.GetCommonEventFilter()
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if !commonFilter.Update(e) {
+				return false
+			}
+			oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+			newCluster := e.ObjectNew.(*clusterv1.Cluster)
+			return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+		},
+		CreateFunc: commonFilter.CreateFunc,
+	}
 }
