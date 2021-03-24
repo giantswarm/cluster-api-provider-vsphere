@@ -529,7 +529,7 @@ func (r clusterReconciler) reconcileVSphereClusterWhenAPIServerIsOnline(ctx *con
 
 func (r clusterReconciler) isAPIServerOnline(ctx *context.ClusterContext) bool {
 	if kubeClient, err := infrautilv1.NewKubeClient(ctx, ctx.Client, ctx.Cluster); err == nil {
-		if _, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{}); err == nil {
+		if _, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{}); err == nil {
 			// The target cluster is online. To make sure the correct control
 			// plane endpoint information is logged, it is necessary to fetch
 			// an up-to-date Cluster resource. If this fails, then set the
@@ -592,7 +592,7 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 	}
 
 	serviceAccount := cloudprovider.CloudControllerManagerServiceAccount()
-	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(serviceAccount); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(ctx, serviceAccount, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -602,32 +602,32 @@ func (r clusterReconciler) reconcileCloudProvider(ctx *context.ClusterContext) e
 	}
 
 	cloudConfigMap := cloudprovider.CloudControllerManagerConfigMap(string(cloudConfigData))
-	if _, err := targetClusterClient.CoreV1().ConfigMaps(cloudConfigMap.Namespace).Create(cloudConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().ConfigMaps(cloudConfigMap.Namespace).Create(ctx, cloudConfigMap, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	daemonSet := cloudprovider.CloudControllerManagerDaemonSet(controllerImage, cloudproviderConfig.MarshalCloudProviderArgs())
-	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(ctx, daemonSet, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	service := cloudprovider.CloudControllerManagerService()
-	if _, err := targetClusterClient.CoreV1().Services(daemonSet.Namespace).Create(service); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().Services(daemonSet.Namespace).Create(ctx, service, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	clusterRole := cloudprovider.CloudControllerManagerClusterRole()
-	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(clusterRole); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(ctx, clusterRole, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	clusterRoleBinding := cloudprovider.CloudControllerManagerClusterRoleBinding()
-	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(ctx, clusterRoleBinding, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	roleBinding := cloudprovider.CloudControllerManagerRoleBinding()
-	if _, err := targetClusterClient.RbacV1().RoleBindings(roleBinding.Namespace).Create(roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.RbacV1().RoleBindings(roleBinding.Namespace).Create(ctx, roleBinding, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -686,22 +686,22 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 	}
 
 	serviceAccount := cloudprovider.CSIControllerServiceAccount()
-	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(serviceAccount); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().ServiceAccounts(serviceAccount.Namespace).Create(ctx, serviceAccount, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	configMap := cloudprovider.CSIFeatureStatesConfigMap()
-	if _, err := targetClusterClient.CoreV1().ConfigMaps(configMap.Namespace).Create(configMap); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().ConfigMaps(configMap.Namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	clusterRole := cloudprovider.CSIControllerClusterRole()
-	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(clusterRole); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.RbacV1().ClusterRoles().Create(ctx, clusterRole, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	clusterRoleBinding := cloudprovider.CSIControllerClusterRoleBinding()
-	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.RbacV1().ClusterRoleBindings().Create(ctx, clusterRoleBinding, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
@@ -713,22 +713,22 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 	}
 
 	cloudConfigSecret := cloudprovider.CSICloudConfigSecret(string(cloudConfig))
-	if _, err := targetClusterClient.CoreV1().Secrets(cloudConfigSecret.Namespace).Create(cloudConfigSecret); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.CoreV1().Secrets(cloudConfigSecret.Namespace).Create(ctx, cloudConfigSecret, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	csiDriver := cloudprovider.CSIDriver()
-	if _, err := targetClusterClient.StorageV1beta1().CSIDrivers().Create(csiDriver); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.StorageV1beta1().CSIDrivers().Create(ctx, csiDriver, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	daemonSet := cloudprovider.VSphereCSINodeDaemonSet(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
-	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(daemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := targetClusterClient.AppsV1().DaemonSets(daemonSet.Namespace).Create(ctx, daemonSet, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 
 	// check if CSI is already deployed
-	_, err = targetClusterClient.AppsV1().StatefulSets(cloudprovider.CSINamespace).Get(cloudprovider.CSIControllerName, metav1.GetOptions{})
+	_, err = targetClusterClient.AppsV1().StatefulSets(cloudprovider.CSINamespace).Get(ctx, cloudprovider.CSIControllerName, metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -737,7 +737,7 @@ func (r clusterReconciler) reconcileStorageProvider(ctx *context.ClusterContext)
 	// this is a new cluster deploy the latest csi
 	if apierrors.IsNotFound(err) {
 		deployment := cloudprovider.CSIControllerDeployment(ctx.VSphereCluster.Spec.CloudProviderConfiguration.ProviderConfig.Storage)
-		if _, err := targetClusterClient.AppsV1().Deployments(deployment.Namespace).Create(deployment); err != nil && !apierrors.IsAlreadyExists(err) {
+		if _, err := targetClusterClient.AppsV1().Deployments(deployment.Namespace).Create(ctx, deployment, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
 			return err
 		}
 	}
@@ -775,7 +775,7 @@ func (r clusterReconciler) reconcileCloudConfigSecret(ctx *context.ClusterContex
 		Type:       apiv1.SecretTypeOpaque,
 		StringData: credentials,
 	}
-	if _, err := targetClusterClient.CoreV1().Secrets(secret.Namespace).Create(secret); err != nil {
+	if _, err := targetClusterClient.CoreV1().Secrets(secret.Namespace).Create(ctx, secret, metav1.CreateOptions{}); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return nil
 		}
