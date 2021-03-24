@@ -27,4 +27,4 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-replace sigs.k8s.io/cluster-api v0.3.13 => github.com/giantswarm/cluster-api v0.3.13-gs
+replace sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-0.20210315183214-1f96eea1165d

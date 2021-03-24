@@ -84,6 +84,10 @@ type Options struct {
 	// Defaults to the eponymous constant in this package.
 	PodName string
 
+	// WatchFilter is the value of label cluster.x-k8s.io/watch-filter
+	// the controller will use to filter resources.
+	WatchFilter string
+
 	// WatchNamespace is the namespace the controllers watch for changes. If
 	// no value is specified then all namespaces are watched.
 	//
