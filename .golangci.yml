@@ -1,28 +1,4 @@
-linters:
-  enable-all: true
-  disable:
-    - dupl
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - lll
-    - godox
-    - wsl
-    - whitespace
-    - gomnd
-  # Run with --fast=false for more extensive checks
-  fast: true
 run:
-  skip-files:
-  - ".*zz_generated.*\\.go"
-  - "contrib/.*"
-  timeout: 5m
-issue:
-  max-same-issues: 0
-  max-per-linter: 0
-issues:
-  exclude-rules:
-    - path: "test/e2e/*"
-      linters:
-        - gosec
-      text: "G106:"
+  issues-exit-code: 0
+linters:
+  disable-all: true
