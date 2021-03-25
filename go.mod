@@ -24,3 +24,9 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.14
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace sigs.k8s.io/cluster-api => github.com/giantswarm/cluster-api v0.3.10-0.20210315183214-1f96eea1165d
+
+replace github.com/coreos/etcd => github.com/coreos/etcd v3.3.25+incompatible
+
+replace github.com/gorilla/websocket v1.4.0 => github.com/gorilla/websocket v1.4.2
