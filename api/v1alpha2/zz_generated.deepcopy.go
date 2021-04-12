@@ -21,8 +21,8 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"k8s.io/api/core/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
